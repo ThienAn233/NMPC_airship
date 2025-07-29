@@ -126,8 +126,8 @@ class AirshipCasADiSymbolic:
 
         # =======================气动力和气动力矩======================================
         #    风速和相对速度计算
-        V_wind_ERF = np.array([0.0, 0.0, 0.0])  # 地球坐标系中的风速
-        V_wind_BRF = Rz.T @ V_wind_ERF  # 将风速转换到机体坐标系
+        V_wind_ERF = np.array([0.0, 0.0, 0.0])  # Wind speed in Earth coordinates
+        V_wind_BRF = Rz.T @ V_wind_ERF  # Convert wind speed to aircraft coordinate system
 
         # 动压
         q_dyn = 0.5 * self.rho * ca.norm_2(v - V_wind_BRF) ** 2
@@ -138,7 +138,7 @@ class AirshipCasADiSymbolic:
         alpha = ca.atan2(w_rel, u_rel+ 1e-6)  # calculate relative wind speed magnitude (if not provided)
         V_rel_mag = ca.sqrt(u_rel ** 2 + v_rel_body ** 2 + w_rel ** 2)
         beta = ca.asin(v_rel_body / (V_rel_mag + 1e-6))  # calculate side slip angle
-
+        
         # 使用提取的函数计算气动力和气动力矩
         X_a = -q_dyn * (self.C_x1 * ca.cos(alpha) ** 2 * ca.cos(beta) ** 2 + self.C_x2 * ca.sin(2 * alpha) * ca.sin(
             alpha / 2))

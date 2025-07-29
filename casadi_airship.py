@@ -4,18 +4,9 @@ from airship_dynamic import AirshipCasADiSymbolic
 
 # Simulation parameters
 T = 5.0      # Total time (s)
-N = 50     # Number of time steps
+N = 30     # Number of time steps
 dt = T / N    # Time step
-xf = 5  # Final x position (m)
-
-# Airship parameters
-m = 2934 # Mass of the airship (kg)
-g = 9.74  # Gravitational acceleration (m/s^2)
-Ix = 393187
-Iy = 1224880
-Iz = 939666
-Ixz = -62882
-I0 = np.diag([Ix, Iy, Iz])
+xf = .1  # Final x position (m)
 
 
 # Create symbolic variables for each time step
@@ -71,15 +62,16 @@ for i in range(N - 1):
     g.append(s_ip1 - s_i - (dt/2)*(f_i + f_ip1))   
 
 # Initial and final conditions
-g.append(get_state(0) - ca.vertcat(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))  # Start at rest at origin
-g.append(get_state(N - 1) - ca.vertcat(xf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))  # End at position (100, 0, 0) with no velocity or rotation 
+g.append(get_state(0) - ca.vertcat(0, 0, -2000, 0., 0., 0., 1e-9, 0., 0., 0., 0., 0.))  # Start at rest at origin
+g.append(get_state(N - 1) - ca.vertcat(0, xf, -2000, 0., 0., 1e-9, 0., 0., 0., 0., 0., 0.))  # End at position (100, 0, 0) with no velocity or rotation 
     
 # Objective: minimize total control effort
 f = 0
 for i in range(N - 1):
     u_i = get_control(i)
     u_ip1 = get_control(i + 1)
-    f += 0.5 * dt * (ca.mtimes(u_i.T, u_i) + ca.mtimes(u_ip1.T, u_ip1))
+    f += 500 * dt * (ca.mtimes(u_i.T, u_i) + ca.mtimes(u_ip1.T, u_ip1))
+
     
 # Stack all constraints
 G = ca.vertcat(*g)
@@ -92,11 +84,12 @@ solver = ca.nlpsol('solver', 'ipopt', nlp,{'ipopt': {'max_iter': 10000}})
 
 # Bound on variables
 v_max = 50 # Maximum velocity (m/s)
-theta_max = np.pi/12 # Maximum pitch angle (radians)
-T_max = 10000 # Maximum thrust (N)
-lbx = [-ca.inf]*(3*N) + [-theta_max]*(3*N) + [-v_max]*(3*N) + [-ca.inf]*(3*N) + [-T_max]*N + [-ca.inf]*N + [-ca.inf]*N
-ubx = [ca.inf]*(3*N) + [theta_max]*(3*N) + [v_max]*(3*N) + [ca.inf]*(3*N) + [T_max]*N + [ca.inf]*N + [ca.inf]*N
-    
+theta_max = np.pi/6 # Maximum pitch angle (radians)
+T_max = 100000 # Maximum thrust (N)
+lr_max = np.pi/4 # Maximum roll angle (radians)
+lbx = [-ca.inf]*(3*N) + [-ca.inf]*(2*N)+ [-ca.inf]*(N) + [-v_max]*(3*N) + [-ca.inf]*(3*N) + [-T_max]*N + [-lr_max]*N + [-lr_max]*N
+ubx = [ca.inf]*(3*N) + [ca.inf]*(2*N) + [ca.inf]*(N) + [v_max]*(3*N) + [ca.inf]*(3*N) + [T_max]*N + [lr_max]*N + [lr_max]*N
+
 # Bounds on constraints
 lbg = [0] * (N - 1) * 12 + [0] * 2 *12 # Equality constraints (g == 0)
 ubg = [0] * (N - 1) * 12 + [0] * 2 *12 # Equality constraints (g == 0)
@@ -105,14 +98,49 @@ ubg = [0] * (N - 1) * 12 + [0] * 2 *12 # Equality constraints (g == 0)
 x0 = []
 for i in range(N):
     x0 += [xf*i/N]
-for i in range(N*14):
-    x0 += [10]
+for i in range(N*11):
+    x0 += [1e-3]
+for i in range(N):
+    x0 += [1000]
+for i in range(2*N):
+    x0 += [0.0]  
 
 # Solve the optimization problem
 sol = solver(x0=x0, lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg)
 
-if __name__ == "__main__":
-    # Example usage of the dynamics function
-    s = get_state(0)  # Get the state at the first time step
-    u = get_control(0)  # Get the control at the first time step
-    dynamics.rhs_symbolic(s, u)  # Print the dynamics output for the first state and control
+x_opt = sol['x'].full().flatten()
+x_vals = x_opt[0:N]
+y_vals = x_opt[N:2*N]
+z_vals = x_opt[2*N:3*N]
+phi_vals = x_opt[3*N:4*N]
+theta_vals = x_opt[4*N:5*N]
+psi_vals = x_opt[5*N:6*N]
+vx_vals = x_opt[6*N:7*N]
+vy_vals = x_opt[7*N:8*N]
+vz_vals = x_opt[8*N:9*N]
+omega_phi_vals = x_opt[9*N:10*N]
+omega_theta_vals = x_opt[10*N:11*N]
+omega_psi_vals = x_opt[11*N:12*N]
+umag_vals = x_opt[12*N:13*N]
+ul_vals = x_opt[13*N:14*N]
+ur_vals = x_opt[14*N:15*N]
+
+import matplotlib.pyplot as plt
+
+fig = plt.figure(figsize=(12,12))
+ax = fig.add_subplot(projection='3d')
+ax.plot(x_vals, y_vals, z_vals, label='Trajectory')
+ax.scatter(x_vals[0], y_vals[0], z_vals[0], color='green', label='Start')
+ax.scatter(x_vals[-1], y_vals[-1], z_vals[-1], color='red', label='End')
+ax.legend()
+ax.set_xlabel('X Position (m)')
+ax.set_ylabel('Y Position (m)')
+ax.set_zlabel('Z Position (m)')
+plt.show()
+
+
+# if __name__ == "__main__":
+#     # Example usage of the dynamics function
+#     s = get_state(0)  # Get the state at the first time step
+#     u = get_control(0)  # Get the control at the first time step
+#     dynamics.rhs_symbolic(s, u)  # Print the dynamics output for the first state and control
