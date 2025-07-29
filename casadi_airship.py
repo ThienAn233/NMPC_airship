@@ -62,15 +62,15 @@ for i in range(N - 1):
     g.append(s_ip1 - s_i - (dt/2)*(f_i + f_ip1))   
 
 # Initial and final conditions
-g.append(get_state(0) - ca.vertcat(0, 0, -2000, 0., 0., 0., 1e-9, 0., 0., 0., 0., 0.))  # Start at rest at origin
-g.append(get_state(N - 1) - ca.vertcat(0, xf, -2000, 0., 0., 1e-9, 0., 0., 0., 0., 0., 0.))  # End at position (100, 0, 0) with no velocity or rotation 
+g.append(get_state(0) - ca.vertcat(0, 0, -2000, 0., 0., 0., 0., 0., 0., 0., 0., 0.))  # Start at rest at origin
+g.append(get_state(N - 1) - ca.vertcat(0, xf, -2000, 0., 0., 0., 0., 0., 0., 0., 0., 0.))  # End at position (100, 0, 0) with no velocity or rotation 
     
 # Objective: minimize total control effort
 f = 0
 for i in range(N - 1):
     u_i = get_control(i)
     u_ip1 = get_control(i + 1)
-    f += 500 * dt * (ca.mtimes(u_i.T, u_i) + ca.mtimes(u_ip1.T, u_ip1))
+    f += .5* dt * (ca.mtimes(u_i.T, u_i) + ca.mtimes(u_ip1.T, u_ip1))
 
     
 # Stack all constraints
@@ -91,8 +91,8 @@ lbx = [-ca.inf]*(3*N) + [-ca.inf]*(2*N)+ [-ca.inf]*(N) + [-v_max]*(3*N) + [-ca.i
 ubx = [ca.inf]*(3*N) + [ca.inf]*(2*N) + [ca.inf]*(N) + [v_max]*(3*N) + [ca.inf]*(3*N) + [T_max]*N + [lr_max]*N + [lr_max]*N
 
 # Bounds on constraints
-lbg = [0] * (N - 1) * 12 + [0] * 2 *12 # Equality constraints (g == 0)
-ubg = [0] * (N - 1) * 12 + [0] * 2 *12 # Equality constraints (g == 0)
+lbg = [0] * (N - 1) * 12 + [-0.1] * 2 *12 # Equality constraints (g == 0)
+ubg = [0] * (N - 1) * 12 + [0.1] * 2 *12 # Equality constraints (g == 0)
 
 # Initial guess for the optimization variables
 x0 = []
