@@ -40,7 +40,7 @@ def R_zeta(gamma):
 
 
 def R_gamma(gamma):
-    tol = 1e-6
+    tol = 0*1e-6
     """
     参数：
         gamma: 姿态角 (phi, theta, psi)
@@ -58,7 +58,7 @@ def R_gamma(gamma):
 
 
 def R_y_inv(gamma):
-    tol = 1e-6
+    tol = 0*1e-6
     """
     Compute inverse of rotation matrix R_gamma
 

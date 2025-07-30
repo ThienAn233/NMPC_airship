@@ -4,9 +4,9 @@ from airship_dynamic import AirshipCasADiSymbolic
 
 # Simulation parameters
 T = 5.0      # Total time (s)
-N = 30     # Number of time steps
+N = 50     # Number of time steps
 dt = T / N    # Time step
-xf = .1  # Final x position (m)
+xf = 80  # Final x position (m)
 
 
 # Create symbolic variables for each time step
@@ -46,6 +46,9 @@ def get_state(i):
 def get_control(i):
     return ca.vertcat(umag_list[i], ul_list[i], ur_list[i])
 
+def get_ref_traj(i):      
+    return ca.vertcat(xf * i / (N - 1), 0, 0)
+
 # Dynamics function
 dynamics = AirshipCasADiSymbolic()
 
@@ -62,15 +65,23 @@ for i in range(N - 1):
     g.append(s_ip1 - s_i - (dt/2)*(f_i + f_ip1))   
 
 # Initial and final conditions
-g.append(get_state(0) - ca.vertcat(0, 0, -2000, 0., 0., 0., 0., 0., 0., 0., 0., 0.))  # Start at rest at origin
-g.append(get_state(N - 1) - ca.vertcat(0, xf, -2000, 0., 0., 0., 0., 0., 0., 0., 0., 0.))  # End at position (100, 0, 0) with no velocity or rotation 
+g.append(get_state(0) - ca.vertcat(0, 0, 0, 0., 0., np.pi, 0., 0., 0., 0., 0., 0.))  # Start at rest at origin
+g.append(get_state(N - 1) - ca.vertcat(xf, 0, 0, 0., 0., np.pi, 0., 0., 0., 0., 0., 0.))  # End at position (100, 0, 0) with no velocity or rotation 
+g.append(get_control(0) - ca.vertcat(0., 0., 0.))  # Initial control inputs
+g.append(get_control(N - 1) - ca.vertcat(0., 0., 0.))  # Final control inputs
     
 # Objective: minimize total control effort
+R = ca.diag([1e-6, 1.0, 1.0])  # Control effort weighting matrix
 f = 0
 for i in range(N - 1):
     u_i = get_control(i)
     u_ip1 = get_control(i + 1)
-    f += .5* dt * (ca.mtimes(u_i.T, u_i) + ca.mtimes(u_ip1.T, u_ip1))
+    xyz_i = get_state(i)[1:5]
+    xyz_ip1 = get_state(i + 1)[1:5]
+    # xyz_ref_i = get_ref_traj(i)
+    # xyz_ref_ip1 = get_ref_traj(i + 1)
+    f += .5 * dt * (u_i.T@R@ u_i + u_ip1.T@R@u_ip1)
+    f += 50000 * dt * ((xyz_i).T @ (xyz_i) + (xyz_ip1).T @ (xyz_ip1))
 
     
 # Stack all constraints
@@ -83,27 +94,29 @@ nlp = {'x': X, 'f': f, 'g': G}
 solver = ca.nlpsol('solver', 'ipopt', nlp,{'ipopt': {'max_iter': 10000}})
 
 # Bound on variables
-v_max = 50 # Maximum velocity (m/s)
+v_max = 10 # Maximum velocity (m/s)
 theta_max = np.pi/6 # Maximum pitch angle (radians)
 T_max = 100000 # Maximum thrust (N)
-lr_max = np.pi/4 # Maximum roll angle (radians)
-lbx = [-ca.inf]*(3*N) + [-ca.inf]*(2*N)+ [-ca.inf]*(N) + [-v_max]*(3*N) + [-ca.inf]*(3*N) + [-T_max]*N + [-lr_max]*N + [-lr_max]*N
-ubx = [ca.inf]*(3*N) + [ca.inf]*(2*N) + [ca.inf]*(N) + [v_max]*(3*N) + [ca.inf]*(3*N) + [T_max]*N + [lr_max]*N + [lr_max]*N
+lr_max = np.pi # Maximum roll angle (radians)
+lbx = [-ca.inf]*(3*N) + [-ca.inf]*(2*N)+ [-ca.inf]*(N) + [-ca.inf]*(3*N) + [-ca.inf]*(3*N) + [-T_max]*N + [-lr_max]*N + [-lr_max]*N
+ubx = [ca.inf]*(3*N) + [ca.inf]*(2*N) + [ca.inf]*(N) + [ca.inf]*(3*N) + [ca.inf]*(3*N) + [T_max]*N + [lr_max]*N + [lr_max]*N
 
 # Bounds on constraints
-lbg = [0] * (N - 1) * 12 + [-0.1] * 2 *12 # Equality constraints (g == 0)
-ubg = [0] * (N - 1) * 12 + [0.1] * 2 *12 # Equality constraints (g == 0)
+lbg = [0] * (N - 1) * 12 + [-1e-6] * 2 *15 # Equality constraints (g == 0)
+ubg = [0] * (N - 1) * 12 + [1e-6] * 2 *15 # Equality constraints (g == 0)
 
 # Initial guess for the optimization variables
 x0 = []
 for i in range(N):
     x0 += [xf*i/N]
-for i in range(N*11):
-    x0 += [1e-3]
 for i in range(N):
-    x0 += [1000]
-for i in range(2*N):
-    x0 += [0.0]  
+    x0 += [0.0]
+for i in range(N):
+    x0 += [0.0]
+for i in range(N*9):
+    x0 += [1e-12]
+for i in range(3*N):
+    x0 += [0.0]
 
 # Solve the optimization problem
 sol = solver(x0=x0, lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg)
@@ -125,17 +138,41 @@ umag_vals = x_opt[12*N:13*N]
 ul_vals = x_opt[13*N:14*N]
 ur_vals = x_opt[14*N:15*N]
 
+u = np.cos(phi_vals)*np.cos(theta_vals)
+v = np.sin(phi_vals)*np.cos(theta_vals)
+w = np.sin(theta_vals)
+norm = np.sqrt(u**2 + v**2 + w**2)
+u, v, w = u/norm, v/norm, w/norm  # Normalize the direction vectors
+
 import matplotlib.pyplot as plt
 
 fig = plt.figure(figsize=(12,12))
 ax = fig.add_subplot(projection='3d')
 ax.plot(x_vals, y_vals, z_vals, label='Trajectory')
-ax.scatter(x_vals[0], y_vals[0], z_vals[0], color='green', label='Start')
-ax.scatter(x_vals[-1], y_vals[-1], z_vals[-1], color='red', label='End')
+ax.plot([0, xf], [0, 0], [0, 0], color='black', linestyle='--', label='Target Path')
+ax.scatter(0, 0, 0, color='green', label='Start')
+ax.scatter(xf, 0, 0, color='red', label='End')
+# ax.quiver(x_vals, y_vals, z_vals, vx_vals, vy_vals, vz_vals, length=0.5, normalize=True, color='orange', label='Velocity')
+ax.quiver(x_vals, y_vals, z_vals, u, v, w, length=0.5, normalize=True, color='blue', label='Orientation')
 ax.legend()
 ax.set_xlabel('X Position (m)')
 ax.set_ylabel('Y Position (m)')
 ax.set_zlabel('Z Position (m)')
+fig = plt.figure(figsize=(12,12))
+ax = fig.add_subplot(6, 1, 1)
+ax.plot(x_vals, label='x position'),ax.legend()
+ax = fig.add_subplot(6, 1, 2)
+ax.plot(y_vals, label='y position'),ax.legend()
+ax = fig.add_subplot(6, 1, 3)
+ax.plot(z_vals, label='z position'),ax.legend()
+ax = fig.add_subplot(6, 1, 4)
+ax.plot(umag_vals, label='umag'),ax.legend()
+ax = fig.add_subplot(6, 1, 5)
+ax.plot(ul_vals, label='ul'),ax.legend()
+ax = fig.add_subplot(6, 1, 6)
+ax.plot(ur_vals, label='ur'),ax.legend()
+
+
 plt.show()
 
 
