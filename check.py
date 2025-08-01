@@ -2,6 +2,8 @@ import casadi as ca
 import numpy as np
 from airship_dynamic import AirshipCasADiSymbolic
 
+dt = 0.1
+
 x = ca.SX.sym('x')
 y = ca.SX.sym('y')
 z = ca.SX.sym('z')
@@ -35,9 +37,9 @@ dyna = ca.Function('dynamics', [s, u], [dynamics.rhs_symbolic(s, u)])
 
 state_list = [s0]
 
-for i in range(30):
-    s_next = dyna(s0, u0)
-    s0 = s_next  # Update state for next iteration
+for i in range(1000):
+    ds_next = dyna(s0, u0)
+    s0 = s0+dt*ds_next  # Update state for next iteration
     state_list.append(s0)
 
 # print(state_list)
@@ -50,7 +52,4 @@ y_vals = [state[1] for state in state_list]
 z_vals = [state[2] for state in state_list]
 ax.plot(x_vals, y_vals, z_vals)
 ax.scatter(x_vals, y_vals, z_vals, c='r', marker='o')
-print(x_vals)
-print(y_vals)
-print(z_vals)
 plt.show()
