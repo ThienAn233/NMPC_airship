@@ -101,25 +101,25 @@ v_max = 2 # Maximum velocity (m/s)
 theta_max = np.pi/6 # Maximum pitch angle (radians)
 T_max = 100000 # Maximum thrust (N)
 lr_max = np.pi/4 # Maximum roll angle (radians)
-lbx = [-ca.inf]*(3*N) + [-ca.inf]*(2*N) + [-ca.inf]*(N) + [-ca.inf]*(3*N) + [-ca.inf]*(3*N) + [-T_max]*N + [-lr_max]*N + [-lr_max]*N
-ubx = [ ca.inf]*(3*N) + [ ca.inf]*(2*N) + [ ca.inf]*(N) + [ ca.inf]*(3*N) + [ ca.inf]*(3*N) + [ T_max]*N + [ lr_max]*N + [ lr_max]*N
+lbx = [-ca.inf]*(3*N) + [-ca.inf]*(2*N) + [-theta_max]*(N) + [-v_max]*(3*N) + [-ca.inf]*(3*N) + [-T_max]*N + [-lr_max]*N + [-lr_max]*N
+ubx = [ ca.inf]*(3*N) + [ ca.inf]*(2*N) + [ theta_max]*(N) + [ v_max]*(3*N) + [ ca.inf]*(3*N) + [ T_max]*N + [ lr_max]*N + [ lr_max]*N
 
 # Bounds on constraints
-lbg = [0] * (N - 1) * 12 + [-1e-6] * 2 *15 + [-.1] * 2 * (N-1) # Equality constraints (g == 0)
-ubg = [0] * (N - 1) * 12 + [ 1e-6] * 2 *15 + [ .1] * 2 * (N-1)# Equality constraints (g == 0)
+lbg = [0] * (N - 1) * 12 + [-1e-3] * 2 *15 + [-.1] * 2 * (N-1) # Equality constraints (g == 0)
+ubg = [0] * (N - 1) * 12 + [ 1e-3] * 2 *15 + [ .1] * 2 * (N-1) # Equality constraints (g == 0)
 
 # Initial guess for the optimization variables
 x0 = []
 for i in range(N):
     x0 += [xf*i/N]
 for i in range(N):
-    x0 += [0.0]
+    x0 += [1e-12]
 for i in range(N):
-    x0 += [0.0]
+    x0 += [1e-12]
 for i in range(N*9):
     x0 += [1e-12]
 for i in range(3*N):
-    x0 += [0.0]
+    x0 += [1e-12]
 
 # Solve the optimization problem
 sol = solver(x0=x0, lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg)
@@ -148,42 +148,42 @@ w = np.sin(theta_vals)
 norm = np.sqrt(u**2 + v**2 + w**2)
 u, v, w = u/norm, v/norm, w/norm  # Normalize the direction vectors
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-fig = plt.figure(figsize=(12,12))
-ax = fig.add_subplot(projection='3d')
-ax.plot(x_vals, y_vals, z_vals, label='Trajectory')
-ax.plot([0, xf], [0, 0], [0, 0], color='black', linestyle='--', label='Target Path')
-ax.scatter(0, 0, 0, color='green', label='Start')
-ax.scatter(xf, 0, 0, color='red', label='End')
-# ax.quiver(x_vals, y_vals, z_vals, vx_vals, vy_vals, vz_vals, length=0.5, normalize=True, color='orange', label='Velocity')
-ax.quiver(x_vals, y_vals, z_vals, u, v, w, length=0.5, normalize=True, color='blue', label='Orientation')
-ax.legend()
-ax.set_xlabel('X Position (m)')
-ax.set_ylabel('Y Position (m)')
-ax.set_zlabel('Z Position (m)')
-fig = plt.figure(figsize=(12,12))
-ax = fig.add_subplot(9, 1, 1)
-ax.plot(x_vals, label='x position'),ax.legend()
-ax = fig.add_subplot(9, 1, 2)
-ax.plot(y_vals, label='y position'),ax.legend()
-ax = fig.add_subplot(9, 1, 3)
-ax.plot(z_vals, label='z position'),ax.legend()
-ax = fig.add_subplot(9, 1, 4)
-ax.plot(vx_vals, label='vx'),ax.legend()
-ax = fig.add_subplot(9, 1, 5)
-ax.plot(vy_vals, label='vy'),ax.legend()
-ax = fig.add_subplot(9, 1, 6)   
-ax.plot(vz_vals, label='vz'),ax.legend()
-ax = fig.add_subplot(9, 1, 7)
-ax.plot(umag_vals, label='umag'),ax.legend()
-ax = fig.add_subplot(9, 1, 8)
-ax.plot(ul_vals, label='ul'),ax.legend()
-ax = fig.add_subplot(9, 1, 9)
-ax.plot(ur_vals, label='ur'),ax.legend()
+# fig = plt.figure(figsize=(12,12))
+# ax = fig.add_subplot(projection='3d')
+# ax.plot(x_vals, y_vals, z_vals, label='Trajectory')
+# ax.plot([0, xf], [0, 0], [0, 0], color='black', linestyle='--', label='Target Path')
+# ax.scatter(0, 0, 0, color='green', label='Start')
+# ax.scatter(xf, 0, 0, color='red', label='End')
+# # ax.quiver(x_vals, y_vals, z_vals, vx_vals, vy_vals, vz_vals, length=0.5, normalize=True, color='orange', label='Velocity')
+# # ax.quiver(x_vals, y_vals, z_vals, u, v, w, length=0.5, normalize=True, color='blue', label='Orientation')
+# ax.legend()
+# ax.set_xlabel('X Position (m)')
+# ax.set_ylabel('Y Position (m)')
+# ax.set_zlabel('Z Position (m)')
+# fig = plt.figure(figsize=(12,12))
+# ax = fig.add_subplot(9, 1, 1)
+# ax.plot(x_vals, label='x position'),ax.legend()
+# ax = fig.add_subplot(9, 1, 2)
+# ax.plot(y_vals, label='y position'),ax.legend()
+# ax = fig.add_subplot(9, 1, 3)
+# ax.plot(z_vals, label='z position'),ax.legend()
+# ax = fig.add_subplot(9, 1, 4)
+# ax.plot(vx_vals, label='vx'),ax.legend()
+# ax = fig.add_subplot(9, 1, 5)
+# ax.plot(vy_vals, label='vy'),ax.legend()
+# ax = fig.add_subplot(9, 1, 6)   
+# ax.plot(vz_vals, label='vz'),ax.legend()
+# ax = fig.add_subplot(9, 1, 7)
+# ax.plot(umag_vals, label='umag'),ax.legend()
+# ax = fig.add_subplot(9, 1, 8)
+# ax.plot(ul_vals, label='ul'),ax.legend()
+# ax = fig.add_subplot(9, 1, 9)
+# ax.plot(ur_vals, label='ur'),ax.legend()
 
 
-plt.show()
+# plt.show()
 
 
 # if __name__ == "__main__":
