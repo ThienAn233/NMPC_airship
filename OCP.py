@@ -79,6 +79,7 @@ class OCP_AS():
     
     
     def forward(self, state_target, state_init):
+        N = self.N
         # Initial and final conditions
         start = [self.get_state(0) - state_init]
         end   = [self.get_state(self.N - 1) - state_init]
@@ -104,12 +105,44 @@ class OCP_AS():
         x0 = []
         for state in range(12):
             for step in range(self.N):
-                x0 += [state_init[state]+(state_target[state]-state_init[state])*step/self.N + np.random.uniform(-0.01, 0.01)]
+                x0 += ca.SX([state_init[state]+(state_target[state]-state_init[state])*step/self.N + np.random.uniform(-0.01, 0.01)]).
         for i in range(self.N):
             x0 += [1000]
         for i in range(2*self.N):
             x0 += [0.0] 
-            
+        
         sol = solver(x0=x0, lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg)
+        x_opt = sol['x'].full().flatten()
+        x_vals = x_opt[0:N]
+        y_vals = x_opt[N:2*N]
+        z_vals = x_opt[2*N:3*N]
+        phi_vals = x_opt[3*N:4*N]
+        theta_vals = x_opt[4*N:5*N]
+        psi_vals = x_opt[5*N:6*N]
+        vx_vals = x_opt[6*N:7*N]
+        vy_vals = x_opt[7*N:8*N]
+        vz_vals = x_opt[8*N:9*N]
+        omega_phi_vals = x_opt[9*N:10*N]
+        omega_theta_vals = x_opt[10*N:11*N]
+        omega_psi_vals = x_opt[11*N:12*N]
+        umag_vals = x_opt[12*N:13*N]
+        ul_vals = x_opt[13*N:14*N]
+        ur_vals = x_opt[14*N:15*N]
         
-        
+        return ca.horzcat(x_vals, y_vals, z_vals, phi_vals, theta_vals, psi_vals,
+                          vx_vals, vy_vals, vz_vals, omega_phi_vals, omega_theta_vals, omega_psi_vals), ca.horzcat(umag_vals, ul_vals, ur_vals)
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    # Define the OCP
+    ocp = OCP_AS(T=5.0, N=30)
+    ocp.setup(R=ca.diag([1.0, 1.0, 1.0]))
+    
+    # Initial and target states
+    state_init = ca.vertcat(0., 0., -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
+    state_target = ca.vertcat(10., 0., -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
+    
+    # Solve the OCP
+    state_traj, control_traj = ocp.forward(state_target, state_init)
