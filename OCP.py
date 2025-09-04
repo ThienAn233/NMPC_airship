@@ -63,7 +63,7 @@ class OCP_AS():
         for i in range(self.N - 1):
             u_i = self.get_control(i)
             u_ip1 = self.get_control(i + 1)
-            self.f += 500 * self.dt * (u_i.T@R@ u_i + u_ip1.T@R@u_ip1)
+            self.f += .5 * self.dt * (u_i.T@R@ u_i + u_ip1.T@R@u_ip1)
 
         
     
@@ -78,11 +78,11 @@ class OCP_AS():
         return ca.vertcat(self.umag_list[i], self.ul_list[i], self.ur_list[i])
     
     
-    def forward(self, state_target, state_init):
+    def forward(self, state_target:np.array, state_init:np.array):
         N = self.N
         # Initial and final conditions
-        start = [self.get_state(0) - state_init]
-        end   = [self.get_state(self.N - 1) - state_init]
+        start = [self.get_state(0) - ca.SX(state_init)]
+        end   = [self.get_state(self.N - 1) - ca.SX(state_init)]
         
         # Stack all constraints
         G = ca.vertcat(*self.g, *start, *end)
@@ -91,7 +91,12 @@ class OCP_AS():
         nlp = {'x': self.X, 'f': self.f, 'g': G}
 
         # Create an NLP solver
-        solver = ca.nlpsol('solver', 'ipopt', nlp,{'ipopt': {'max_iter': 10000}})
+    #     solver_options = {
+    #     'ipopt.print_level': 0,
+    #     'print_time': 0,  # Suppress CasADi's own timing information
+    #     'ipopt.sb': 'yes' # Suppress Ipopt's banner
+    # }
+        solver = ca.nlpsol('solver', 'ipopt', nlp,{'ipopt': {'max_iter': 10000,'print_level':0,'sb': 'yes'},'print_time': 0})
         
         # Define bounds
         lbx = [-ca.inf]*(3*self.N) + [-ca.inf]*(3*self.N) + [-self.v_max]*(3*self.N) + [-ca.inf]*(3*self.N) + [-self.T_max]*self.N + [-self.lr_max]*self.N + [-self.lr_max]*self.N
@@ -105,14 +110,17 @@ class OCP_AS():
         x0 = []
         for state in range(12):
             for step in range(self.N):
-                x0 += ca.SX([state_init[state]+(state_target[state]-state_init[state])*step/self.N + np.random.uniform(-0.01, 0.01)]).
+                temp = state_init[state]+(state_target[state]-state_init[state])*step/self.N + np.random.uniform(-0.01, 0.01)
+                x0 += [temp]
         for i in range(self.N):
             x0 += [1000]
         for i in range(2*self.N):
             x0 += [0.0] 
-        
         sol = solver(x0=x0, lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg)
-        x_opt = sol['x'].full().flatten()
+        solver_stats = solver.stats()
+        print(f"{solver_stats['return_status']}",end=": ")
+        
+        x_opt = sol['x']
         x_vals = x_opt[0:N]
         y_vals = x_opt[N:2*N]
         z_vals = x_opt[2*N:3*N]
@@ -134,15 +142,43 @@ class OCP_AS():
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
+    # Define the simulator
+    dynamics = AirshipCasADiSymbolic()
+    state = ca.SX.sym('state', 12)  # [x, y, z, phi, theta, psi, vx, vy, vz, omega_phi, omega_theta, omega_psi]
+    control = ca.SX.sym('control', 3)  # [umag, ul, ur]
+    rhs = dynamics.rhs_symbolic(state, control)
+    f = ca.Function('f', [state, control], [rhs])
+    
     # Define the OCP
-    ocp = OCP_AS(T=5.0, N=30)
-    ocp.setup(R=ca.diag([1.0, 1.0, 1.0]))
+    ocp = OCP_AS(T=10.0, N=30)
+    ocp.setup(R=ca.diag([1e-9, 1.0, 1.0]))
     
     # Initial and target states
-    state_init = ca.vertcat(0., 0., -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
-    state_target = ca.vertcat(10., 0., -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
-    
+    state_init  = np.array([0., 0.  , -2000., 0., 0., 0., 5., 0., 0., 0., 0., 0.])
+    state_target= np.array([500., 0., -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+
+    traj = []
     # Solve the OCP
-    state_traj, control_traj = ocp.forward(state_target, state_init)
+    for i in range(30):
+        state_traj, control_traj = ocp.forward(state_target, state_init)
+        dxdt =f(state_init, control_traj[0,:])
+        state_init = state_init + np.array(dxdt).flatten()*ocp.dt
+        print(control_traj[0,:])
+        print(state_init)
+        traj+= [state_init[:3]]
+    
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(12,12))
+    ax = fig.add_subplot(projection='3d')
+    traj = np.array(traj)
+    ax.plot(traj[:,0], traj[:,1], traj[:,2], label='Trajectory', linewidth=10)
+    ax.scatter(0, 0., -2000, color='green', label='Start')
+    ax.scatter(0,500, -2000, color='red', label='End')
+    ax.set_ylim(-50,550)
+    ax.set_xlim(-50,50)
+    ax.set_zlim(-2000-5,-2000+5)
+    ax.legend()
+    ax.set_xlabel('X Position (m)')
+    ax.set_ylabel('Y Position (m)')
+    ax.set_zlabel('Z Position (m)')
+    plt.show()
