@@ -86,7 +86,6 @@ class AirshipCasADiSymbolic:
         gamma = X[3:6]  # 姿态 (欧拉角)
         v = X[6:9]  # BRF 中的线速度
         omega = X[9:12]  # BRF 中的角速度
-
         # === 运动学 ===
         R_block = ca.diagcat(R_zeta(gamma), R_gamma(gamma))
         y_dot = R_block @ ca.vertcat(v, omega)  # y_dot = [zeta_dot, gamma_dot] eq.(5)
@@ -127,8 +126,8 @@ class AirshipCasADiSymbolic:
 
         # =======================气动力和气动力矩======================================
         #    风速和相对速度计算
-        V_wind_ERF = np.array([0.0, .5, 0.0])  # 地球坐标系中的风速
-        V_wind_BRF = Rz.T @ V_wind_ERF  # 将风速转换到机体坐标系
+        V_wind_ERF = np.array([0.0, 0.0, 0.0])  # Wind speed in Earth coordinates
+        V_wind_BRF = Rz.T @ V_wind_ERF  # Convert wind speed to aircraft coordinate system
 
         # 动压
         q_dyn = 0.5 * self.rho * ca.norm_2(v - V_wind_BRF) ** 2
@@ -136,7 +135,7 @@ class AirshipCasADiSymbolic:
         # 计算相对速度
         u_rel, v_rel_body, w_rel = (v - V_wind_BRF)[0], (v - V_wind_BRF)[1], (v - V_wind_BRF)[2]
         # 攻角和侧滑角
-        alpha = ca.atan2(w_rel, u_rel)  # calculate relative wind speed magnitude (if not provided)
+        alpha = ca.atan2(w_rel, u_rel+ 1e-6)  # calculate relative wind speed magnitude (if not provided)
         V_rel_mag = ca.sqrt(u_rel ** 2 + v_rel_body ** 2 + w_rel ** 2)
         beta = ca.asin(v_rel_body / (V_rel_mag + 1e-6))  # calculate side slip angle
 
@@ -201,7 +200,7 @@ class AirshipCasADiSymbolic:
             F_term = F_term + external_disturbance
 
         # --- 动力学方程：Mx_dot + N = F ---
-        x_dot = ca.inv(M_rigid_add) @ (F_term - N_term)
+        x_dot = ca.pinv(M_rigid_add) @ (F_term - N_term)
 
         # --- 合并状态导数 ---
         dxdt = ca.vertcat(y_dot, x_dot)
