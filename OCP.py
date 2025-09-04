@@ -150,16 +150,16 @@ if __name__ == "__main__":
     f = ca.Function('f', [state, control], [rhs])
     
     # Define the OCP
-    ocp = OCP_AS(T=10.0, N=30)
+    ocp = OCP_AS(T=5.0, N=30)
     ocp.setup(R=ca.diag([1e-9, 1.0, 1.0]))
     
     # Initial and target states
-    state_init  = np.array([0., 0.  , -2000., 0., 0., 0., 5., 0., 0., 0., 0., 0.])
+    state_init  = np.array([0., 0.  , -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
     state_target= np.array([500., 0., -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
 
     traj = []
     # Solve the OCP
-    for i in range(30):
+    for i in range(10):
         state_traj, control_traj = ocp.forward(state_target, state_init)
         dxdt =f(state_init, control_traj[0,:])
         state_init = state_init + np.array(dxdt).flatten()*ocp.dt

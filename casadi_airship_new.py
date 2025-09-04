@@ -3,10 +3,10 @@ import numpy as np
 from airship_dynamic import AirshipCasADiSymbolic
 
 # Simulation parameters
-T = 5.0      # Total time (s)
-N = 30     # Number of time steps
+T = 50.0      # Total time (s)
+N = 300     # Number of time steps
 dt = T / N    # Time step
-xf = 10  # Final x position (m)
+xf = 500  # Final x position (m)
 
 
 # Create symbolic variables for each time step
@@ -86,7 +86,8 @@ f = 0
 for i in range(N - 1):
     u_i = get_control(i)
     u_ip1 = get_control(i + 1)
-    f += 500 * dt * (u_i.T@R@ u_i + u_ip1.T@R@u_ip1)
+    f += .5 * dt * (u_i.T@R@ u_i + u_ip1.T@R@u_ip1)
+    # f += .5*ca.sum((get_state(i)[0:3]-get_state(N-1)[0:3])**2)  # Add position error to cost
 
     
 # Stack all constraints
@@ -160,6 +161,10 @@ ax.legend()
 ax.set_xlabel('X Position (m)')
 ax.set_ylabel('Y Position (m)')
 ax.set_zlabel('Z Position (m)')
+ax.set_xlim(-5,xf+5)
+ax.set_ylim(-25,25)
+ax.set_zlim(-2000-50,-2000+50)
+
 fig = plt.figure(figsize=(12,12))
 ax = fig.add_subplot(12, 1, 1)
 ax.plot(x_vals, label='x position'),ax.legend()
