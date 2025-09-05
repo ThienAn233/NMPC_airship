@@ -143,6 +143,9 @@ class OCP_AS():
 
 
 if __name__ == "__main__":
+    
+    n=30
+    
     # Define the simulator
     dynamics = AirshipCasADiSymbolic()
     state = ca.SX.sym('state', 12)  # [x, y, z, phi, theta, psi, vx, vy, vz, omega_phi, omega_theta, omega_psi]
@@ -151,20 +154,21 @@ if __name__ == "__main__":
     f = ca.Function('f', [state, control], [rhs])
     
     # Define the OCP
-    ocp = OCP_AS(T=5.0, N=30)
+    ocp = OCP_AS(T=.50, N=10)
     # ocp.setup(R=ca.diag([1.0, 1.0, 1.0]))
     
     # Initial and target states
     state_init  = np.array([0., 0.  , -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
-    state_target= np.array([500., 0., -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    state_target= np.array([50., 0., -2000., 0., 0., 0., 50., 0., 0., 0., 0., 0.])
+    increment = (state_target - state_init)/n
 
     traj = []
     # Solve the OCP
-    for i in range(10):
-        state_traj, control_traj = ocp.forward(state_target, state_init)
+    for i in range(n):
+        state_traj, control_traj = ocp.forward(state_init+increment, state_init)
         dxdt =f(state_init, control_traj[0,:])
         state_init = state_init + np.array(dxdt).flatten()*ocp.dt
-        print(control_traj[0,:])
+        print(control_traj[1,:])
         print(state_init)
         traj+= [state_init[:3]]
     
@@ -174,10 +178,10 @@ if __name__ == "__main__":
     traj = np.array(traj)
     ax.plot(traj[:,0], traj[:,1], traj[:,2], label='Trajectory', linewidth=10)
     ax.scatter(0, 0., -2000, color='green', label='Start')
-    ax.scatter(0,500, -2000, color='red', label='End')
-    ax.set_ylim(-50,550)
-    ax.set_xlim(-50,50)
-    ax.set_zlim(-2000-5,-2000+5)
+    ax.scatter(0,50, -2000, color='red', label='End')
+    # ax.set_ylim(-50,550)
+    # ax.set_xlim(-50,50)
+    # ax.set_zlim(-2000-5,-2000+5)
     ax.legend()
     ax.set_xlabel('X Position (m)')
     ax.set_ylabel('Y Position (m)')
