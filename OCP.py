@@ -18,7 +18,23 @@ class OCP_AS():
         self.lr_max = np.pi/4 # Maximum roll angle (radians)
 
 
-    def setup(self,R=ca.diag([1.0, 1.0, 1.0])):
+    def setup(self):
+        return
+
+        
+    
+    def get_state(self, i):
+        return ca.vertcat(self.x_list[i], self.y_list[i], self.z_list[i], 
+                          self.phi_list[i], self.theta_list[i], self.psi_list[i],
+                          self.vx_list[i], self.vy_list[i], self.vz_list[i],
+                          self.omega_phi_list[i], self.omega_theta_list[i], self.omega_psi_list[i])
+        
+        
+    def get_control(self, i):
+        return ca.vertcat(self.umag_list[i], self.ul_list[i], self.ur_list[i])
+    
+    
+    def forward(self, state_target:np.array, state_init:np.array,R=ca.diag([1.0, 1.0, 1.0])):
         self.R = R
         # Create symbolic variables for each time step
         self.x_list, self.y_list, self.z_list, self.phi_list, self.theta_list, self.psi_list = [], [], [], [], [], []
@@ -64,21 +80,6 @@ class OCP_AS():
             u_i = self.get_control(i)
             u_ip1 = self.get_control(i + 1)
             self.f += .5 * self.dt * (u_i.T@R@ u_i + u_ip1.T@R@u_ip1)
-
-        
-    
-    def get_state(self, i):
-        return ca.vertcat(self.x_list[i], self.y_list[i], self.z_list[i], 
-                          self.phi_list[i], self.theta_list[i], self.psi_list[i],
-                          self.vx_list[i], self.vy_list[i], self.vz_list[i],
-                          self.omega_phi_list[i], self.omega_theta_list[i], self.omega_psi_list[i])
-        
-        
-    def get_control(self, i):
-        return ca.vertcat(self.umag_list[i], self.ul_list[i], self.ur_list[i])
-    
-    
-    def forward(self, state_target:np.array, state_init:np.array):
         N = self.N
         # Initial and final conditions
         start = [self.get_state(0) - ca.SX(state_init)]
@@ -151,7 +152,7 @@ if __name__ == "__main__":
     
     # Define the OCP
     ocp = OCP_AS(T=5.0, N=30)
-    ocp.setup(R=ca.diag([1e-9, 1.0, 1.0]))
+    # ocp.setup(R=ca.diag([1.0, 1.0, 1.0]))
     
     # Initial and target states
     state_init  = np.array([0., 0.  , -2000., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
