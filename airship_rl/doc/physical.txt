@@ -1,0 +1,29 @@
+Physical Properties for airship
+General Properties:
+	Material:	{}
+	Density:	1.000 g/cm^3
+	Mass:	474.181 kg (Relative Error = 19.220114%)
+	Area:	710.865 m^2 (Relative Error = 0.000000%)
+	Volume:	0.474 m^3 (Relative Error = 19.220114%)
+Center of Gravity:
+	X:	-0.576 m (Relative Error = 19.220114%)
+	Y:	-0.000 m (Relative Error = 19.220114%)
+	Z:	-0.366 m (Relative Error = 19.220114%)
+Mass Moments of Inertia with respect to Center of Gravity(Calculated using negative integral)
+	Ixx
+        	5848.827 kg m^2 (Relative Error = 19.220114%)
+	Iyx Iyy    	-0.004 kg m^2 (Relative Error = 19.220114%)	11842.571 kg m^2 (Relative Error = 19.220114%)
+	Izx Izy Izz	99.965 kg m^2 (Relative Error = 19.220114%)	0.003 kg m^2 (Relative Error = 19.220114%)	11170.618 kg m^2 (Relative Error = 19.220114%)
+Mass Moments of Inertia with respect to Global(Calculated using negative integral)
+	Ixx
+        	5912.287 kg m^2 (Relative Error = 19.220114%)
+	Iyx Iyy    	-0.005 kg m^2 (Relative Error = 19.220114%)	12063.473 kg m^2 (Relative Error = 19.220114%)
+	Izx Izy Izz	0.008 kg m^2 (Relative Error = 19.220114%)	0.003 kg m^2 (Relative Error = 19.220114%)	11328.060 kg m^2 (Relative Error = 19.220114%)
+Principal Moments of Inertia with respect to Center of Gravity
+	I1:	5846.950 kg m^2 (Relative Error = 19.220114%)
+	I2:	11842.571 kg m^2 (Relative Error = 19.220114%)
+	I3:	11172.495 kg m^2 (Relative Error = 19.220114%)
+Rotation from Global to Principal
+	Rx:	-0.00 deg (Relative Error = 19.220114%)
+	Ry:	-1.08 deg (Relative Error = 19.220114%)
+	Rz:	-0.00 deg (Relative Error = 19.220114%)
