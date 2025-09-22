@@ -18,8 +18,8 @@
     </collision>
 
     <inertial>
-      <mass value="474.181"/>
-      <inertia ixx="5912.287"  ixy="-0.005"  ixz="0.008" iyy="12063.473" iyz="0.003" izz="11328.060" />
+      <mass value="2934"/>
+      <inertia ixx="393187"  ixy="0.0"  ixz="0.0" iyy="1224880" iyz="0.0" izz="939666" />
     </inertial>
   </link>
 
