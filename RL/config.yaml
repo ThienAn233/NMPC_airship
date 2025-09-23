@@ -1,3 +1,22 @@
+C_l1: 833.3333333333333
+C_m1: 2673.611111111111
+C_m2: 2673.611111111111
+C_m3: 2673.611111111111
+C_m4: 2673.611111111111
+C_n1: 2673.611111111111
+C_n2: 2673.611111111111
+C_n3: 2673.611111111111
+C_n4: 2673.611111111111
+C_x1: 22.8125
+C_x2: 22.8125
+C_y1: 22.8125
+C_y2: 22.8125
+C_y3: 22.8125
+C_y4: 22.8125
+C_z1: 22.8125
+C_z2: 22.8125
+C_z3: 22.8125
+C_z4: 22.8125
 Cd:
 - 0.02
 - 0.02
@@ -6,6 +25,9 @@ Cl:
 - 0.2
 - 0.2
 - 0.2
+Ixx: 393187
+Iyy: 1224880
+Izz: 939666
 ThrusterPos1:
 - -6
 - 0
@@ -19,19 +41,28 @@ ThrusterPos3:
 - 3.03
 - -1.75
 action_filter: 0.5
-airship_PATH: NMPC_airship//RL/airship_model//urdf//airship.urdf
+airship_PATH: NMPC_airship//RL//airship_model//urdf//airship.urdf
+airship_a1: 44.35
+airship_a2: 44.35
+airship_b: 13.85
+airshipobj: NMPC_airship//RL//airship_model//meshes/airship.obj
 angvelrand:
 - -0.2
 - 0.2
 buoyancy_gain: 5000
+center_of_mass:
+- -0.576
+- 0
+- -0.366
 diameter: 8
 f: 0.004166666666666667
-g: -9.81
+g: -9.74
+k3: 0.53
 length: 16
 linvelrand:
 - -1
 - 1
-mass: 474.181
+mass: 2934
 no_thrusters: 3
 orirand:
 - -0.2
@@ -40,13 +71,24 @@ plane_PATH: plane.urdf
 posrand:
 - -1
 - 1
-reward_coeff:
-- 10
-- 10
+rb:
 - 0
-- 50
+- 0
+- 0
+reward_coeff:
+- 1000
+- 1000
 - 1
-rho: 0.089
+- 1
+rho: 0.0822
+rp_l:
+- 0
+- -13.85
+- -3
+rp_r:
+- 0
+- 13.85
+- -3
 startOri:
 - 0
 - 0
@@ -54,11 +96,15 @@ startOri:
 startPos:
 - 0
 - 0
-- 100
+- 2000
 target_PATH: NMPC_airship//RL//airship_model//urdf//target.urdf
 target_range:
-- - 100
-  - 100
+- - 2010
+  - 1990
 - 200
 thrust: 10000
 thrust_gain: 2000
+volume: 35705
+xg: 0
+yg: 0
+zg: 2.66

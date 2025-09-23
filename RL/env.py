@@ -59,6 +59,10 @@ class AirshipEnv(gym.Env):
         self.config['length']*self.config['diameter'],  # y direction side area
         np.pi * (self.config['diameter']/2)**2  # Positive area in the direction of z (circular cross-section)
         ])
+        self.m_air      = self.config['rho'] * self.config['volume']  # displaced air mass
+        self.mass       = self.config['mass'] + self.m_air
+        self.I_added    = self.m_air * np.array([0.0, self.config['k3'], self.config['k3']])  # eq.[I'_0] eq 42
+        self.I          = np.array([self.config['Ixx'], self.config['Iyy'], self.config['Izz']]) + self.I_added
         #########################################################################################################################################################
         self.good_dir = 0 
         self.good_fac = 0
@@ -74,8 +78,18 @@ class AirshipEnv(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath(),physicsClientId=self.physicsClient)
         pos = self.config['startPos']
         ori = p.getQuaternionFromEuler(self.config['startOri'],physicsClientId=self.physicsClient)
-        self.planeId    = p.loadURDF(self.config['plane_PATH'],physicsClientId=self.physicsClient,globalScaling=100)
-        self.AirShip    = p.loadURDF(self.config['airship_PATH'],pos,ori,physicsClientId=self.physicsClient)
+        # self.planeId    = p.loadURDF(self.config['plane_PATH'],physicsClientId=self.physicsClient,globalScaling=100)
+        self.ShapeId    = p.createVisualShape(shapeType=p.GEOM_MESH,
+                                              fileName=self.config['airshipobj'],
+                                              rgbaColor=[.5,.5, .5, .7],
+                                              visualFramePosition=[self.config['xg'],self.config['yg'],-self.config['zg']])
+        self.AirShip    = p.createMultiBody(baseMass=1,
+                                            baseVisualShapeIndex=self.ShapeId,
+                                            basePosition=pos,
+                                            baseOrientation=ori,
+                                            baseInertialFramePosition=[self.config['xg'],self.config['yg'],-self.config['zg']],
+                                            physicsClientId=self.physicsClient)
+        p.changeDynamics(self.AirShip, -1, mass=self.mass,localInertiaDiagonal=self.I, physicsClientId=self.physicsClient)
         self.targetId   = p.loadURDF(self.config['target_PATH'],physicsClientId=self.physicsClient)
         self.reset()
         ### SETUP ENV ###
@@ -98,7 +112,7 @@ class AirshipEnv(gym.Env):
         self.lin, self.ang = utils.active_rotation(np.array(self.ori),self.lin)[:3], utils.active_rotation(np.array(self.ori),self.ang)[:3]
         self.wind          = np.array(self.Windmodel()+[0])
         self.wind          = utils.active_rotation(np.array(self.ori),self.wind)[:3]  
-        self.winlin           = self.lin - self.wind   
+        self.winlin        = self.lin - self.wind   
         self.dir           = utils.active_rotation(np.array(self.ori),np.array(list(self.targetPos-self.pos)+[0]))[:3]
         self.dir           = self.dir/np.linalg.norm(self.dir)
         self.rot           = utils.passive_rotation(np.array(self.ori),[0,0,1,0])[:3]
@@ -187,7 +201,11 @@ class AirshipEnv(gym.Env):
         for _ in range(10):
             ##### PHYSICAL MODEL #####
             ### BUOYANCY ###
-            p.applyExternalForce(self.AirShip,-1,(0,0,self.config['buoyancy_gain']*thrust[0]+ self.config['mass']*-self.config['g']),self.pos,p.WORLD_FRAME,physicsClientId=self.physicsClient)
+            Rz = utils.quaternion_matrix(self.ori)
+            p.applyExternalForce(self.AirShip,-1,(0,0,-self.config['rho'] * self.config['volume'] * self.config['g']),self.pos,p.WORLD_FRAME,physicsClientId=self.physicsClient)
+            
+            fb_BRF = Rz.T@()
+            print(-self.mass*self.config['g'],-self.config['rho'] * self.config['volume'] * self.config['g'])
             ### BUOYANCY ###
 
             ### PROPULSION ###

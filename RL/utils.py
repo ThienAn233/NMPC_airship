@@ -1,6 +1,27 @@
 import numpy as np
 import pybullet as p
 
+def quaternion_matrix(quaternion):
+    euler = p.getEulerFromQuaternion(quaternion)
+    phi, theta, psi = euler
+    return np.vertcat(
+        np.horzcat(
+            np.cos(theta) * np.cos(psi),
+            np.sin(phi) * np.sin(theta) * np.cos(psi) - np.cos(phi) * np.sin(psi),
+            np.cos(phi) * np.sin(theta) * np.cos(psi) + np.sin(phi) * np.sin(psi)
+        ),
+        np.horzcat(
+            np.cos(theta) * np.sin(psi),
+            np.sin(phi) * np.sin(theta) * np.sin(psi) + np.cos(phi) * np.cos(psi),
+            np.cos(phi) * np.sin(theta) * np.sin(psi) - np.sin(phi) * np.cos(psi)
+        ),
+        np.horzcat(
+            -np.sin(theta),
+            np.sin(phi) * np.cos(theta),
+            np.cos(phi) * np.cos(theta)
+        )
+    )
+
 def quaternion_multiply(quaternion1, quaternion0):
     x0, y0, z0, w0 = quaternion0
     x1, y1, z1, w1 = quaternion1
