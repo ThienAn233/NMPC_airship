@@ -18,9 +18,7 @@ data = {
     'airship_a1'    : 88.70/2,  
     'airship_a2'    : 88.70/2,
     'airship_b'     : 27.7/2,
-    'xg'            : 0,
-    'yg'            : 0,
-    'zg'            : 2.66,
+    'rg'            : [0, 0, 2.66],    
     'rb'            : [0, 0, 0],
     'rp_r'          : [0, 27.7/2, -3],
     'rp_l'          : [0, -27.7/2, -3],
@@ -46,18 +44,7 @@ data = {
     'C_z4'          : 657.0 / 28.8,
     'k3'            : 0.53,  
 
-
-    
-    
     'no_thrusters'  : 3,
-    'thrust'        : 10000,
-    'length'        : 16, 
-    'diameter'      : 8,
-    'Cd'            : [0.02, 0.02, 0.03],
-    'Cl'            : [0.2, 0.2, 0.2],
-    'ThrusterPos1'  : [-6,    0,  3.5],
-    'ThrusterPos2'  : [-6,-3.03,-1.75],
-    'ThrusterPos3'  : [-6, 3.03,-1.75],
     'posrand'       : [-1,1],
     'orirand'       : [-0.2, 0.2],
     'linvelrand'    : [-1,1],
@@ -67,7 +54,6 @@ data = {
     'action_filter' : 0.5,
     'buoyancy_gain' : 5000,
     'thrust_gain'   : 2000,
-    'center_of_mass': [-0.576,0,-0.366],
 }
 
 

@@ -35,15 +35,14 @@ class AirshipEnv(gym.Env):
             self.physicsClient = p.connect(p.GUI)
             p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
             p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS,0)
-            self.linex = p.addUserDebugLine((0,0,0)                    ,(1,0,0)                    ,lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
-            self.liney = p.addUserDebugLine((0,0,0)                    ,(0,1,0)                    ,lineColorRGB=(0,1,0),physicsClientId=self.physicsClient)
-            self.linez = p.addUserDebugLine((0,0,0)                    ,(0,0,1)                    ,lineColorRGB=(0,0,1),physicsClientId=self.physicsClient)
-            self.line1 = p.addUserDebugLine(self.config['ThrusterPos1'],self.config['ThrusterPos1'],lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
-            self.line2 = p.addUserDebugLine(self.config['ThrusterPos2'],self.config['ThrusterPos2'],lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
-            self.line3 = p.addUserDebugLine(self.config['ThrusterPos3'],self.config['ThrusterPos3'],lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
-            self.linet = p.addUserDebugLine(( 0,    0,    0)           ,( 0,    0,    0)           ,lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
-            self.lined = p.addUserDebugLine(( 0,    0,    0)           ,( 0,    0,    0)           ,lineColorRGB=(0,1,0),physicsClientId=self.physicsClient)
-            self.linew = p.addUserDebugLine(( 0,    0,    0)           ,( 0,    0,    0)           ,lineColorRGB=(0,0,1),physicsClientId=self.physicsClient)
+            self.linex = p.addUserDebugLine((0,0,0)             ,(1,0,0)                ,lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
+            self.liney = p.addUserDebugLine((0,0,0)             ,(0,1,0)                ,lineColorRGB=(0,1,0),physicsClientId=self.physicsClient)
+            self.linez = p.addUserDebugLine((0,0,0)             ,(0,0,1)                ,lineColorRGB=(0,0,1),physicsClientId=self.physicsClient)
+            self.line1 = p.addUserDebugLine(self.config['rp_r'] ,self.config['rp_r']    ,lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
+            self.line2 = p.addUserDebugLine(self.config['rp_l'] ,self.config['rp_l']    ,lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
+            self.linet = p.addUserDebugLine(( 0,    0,    0)    ,( 0,    0,    0)       ,lineColorRGB=(1,0,0),physicsClientId=self.physicsClient)
+            self.lined = p.addUserDebugLine(( 0,    0,    0)    ,( 0,    0,    0)       ,lineColorRGB=(0,1,0),physicsClientId=self.physicsClient)
+            self.linew = p.addUserDebugLine(( 0,    0,    0)    ,( 0,    0,    0)       ,lineColorRGB=(0,0,1),physicsClientId=self.physicsClient)
         else:
             self.physicsClient = p.connect(p.DIRECT)
         ### RENDER SETTINGS ####
@@ -54,11 +53,6 @@ class AirshipEnv(gym.Env):
         self.action                         = np.array([0, 0, 0, 0])
         self.previous_action                = np.array([0, 0, 0, 0])
         #########################################################################################################################################################
-        self.A = np.array([
-        self.config['length']*self.config['diameter'],  # x-direction side area
-        self.config['length']*self.config['diameter'],  # y direction side area
-        np.pi * (self.config['diameter']/2)**2  # Positive area in the direction of z (circular cross-section)
-        ])
         self.m_air      = self.config['rho'] * self.config['volume']  # displaced air mass
         self.mass       = self.config['mass'] + self.m_air
         self.I_added    = self.m_air * np.array([0.0, self.config['k3'], self.config['k3']])  # eq.[I'_0] eq 42
@@ -74,20 +68,21 @@ class AirshipEnv(gym.Env):
 
         ### SETUP ENV ###
         np.random.seed(self.seed)
-        p.setGravity(0,0,self.config['g'],physicsClientId=self.physicsClient)
+        p.setGravity(0,0,0,physicsClientId=self.physicsClient)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(),physicsClientId=self.physicsClient)
         pos = self.config['startPos']
         ori = p.getQuaternionFromEuler(self.config['startOri'],physicsClientId=self.physicsClient)
         # self.planeId    = p.loadURDF(self.config['plane_PATH'],physicsClientId=self.physicsClient,globalScaling=100)
         self.ShapeId    = p.createVisualShape(shapeType=p.GEOM_MESH,
                                               fileName=self.config['airshipobj'],
+                                              meshScale=[3.5,3.5,3.5],
                                               rgbaColor=[.5,.5, .5, .7],
-                                              visualFramePosition=[self.config['xg'],self.config['yg'],-self.config['zg']])
+                                              visualFramePosition=-np.array(self.config['rg']))
         self.AirShip    = p.createMultiBody(baseMass=1,
                                             baseVisualShapeIndex=self.ShapeId,
                                             basePosition=pos,
                                             baseOrientation=ori,
-                                            baseInertialFramePosition=[self.config['xg'],self.config['yg'],-self.config['zg']],
+                                            baseInertialFramePosition=-np.array(self.config['rg']),
                                             physicsClientId=self.physicsClient)
         p.changeDynamics(self.AirShip, -1, mass=self.mass,localInertiaDiagonal=self.I, physicsClientId=self.physicsClient)
         self.targetId   = p.loadURDF(self.config['target_PATH'],physicsClientId=self.physicsClient)
@@ -200,23 +195,53 @@ class AirshipEnv(gym.Env):
         wind = self.Windmodel()
         for _ in range(10):
             ##### PHYSICAL MODEL #####
+            ### GRAVITY ###
+            p.applyExternalForce(self.AirShip,-1,(0,0,self.config['mass']*self.config['g']),self.pos,p.WORLD_FRAME,physicsClientId=self.physicsClient)
+            ### GRAVITY ###
+            
+            
             ### BUOYANCY ###
             Rz = utils.quaternion_matrix(self.ori)
-            p.applyExternalForce(self.AirShip,-1,(0,0,-self.config['rho'] * self.config['volume'] * self.config['g']),self.pos,p.WORLD_FRAME,physicsClientId=self.physicsClient)
-            
-            fb_BRF = Rz.T@()
-            print(-self.mass*self.config['g'],-self.config['rho'] * self.config['volume'] * self.config['g'])
+            fb_ERF = -np.array([[0],[0],[self.config['rho'] * self.config['volume'] * self.config['g']]])
+            fb_BRF = (Rz.T@fb_ERF).T.flatten()
+            p.applyExternalForce(self.AirShip,-1,fb_BRF,self.config['rg'],p.LINK_FRAME,physicsClientId=self.physicsClient)
             ### BUOYANCY ###
 
             ### PROPULSION ###
-            p.applyExternalForce(self.AirShip,-1,(self.config['thrust_gain']*thrust[1],0,0),self.config['ThrusterPos1'],p.LINK_FRAME,physicsClientId=self.physicsClient)
-            p.applyExternalForce(self.AirShip,-1,(self.config['thrust_gain']*thrust[2],0,0),self.config['ThrusterPos2'],p.LINK_FRAME,physicsClientId=self.physicsClient)
-            p.applyExternalForce(self.AirShip,-1,(self.config['thrust_gain']*thrust[3],0,0),self.config['ThrusterPos3'],p.LINK_FRAME,physicsClientId=self.physicsClient)
+            T_mag = thrust[0]
+            mu = thrust[1]
+            nu = thrust[2]
+            # 计算右侧推力向量
+            thrust_vector_r = np.vstack(
+                [T_mag * np.cos(mu) * np.cos(nu),
+                T_mag * np.sin(mu),
+                T_mag * np.cos(mu) * np.sin(nu)]).T.flatten()
+            # 计算左侧推力向量
+            thrust_vector_l = np.vstack(
+                [T_mag * np.cos(mu) * np.cos(nu),
+                T_mag * np.sin(mu),
+                T_mag * np.cos(mu) * np.sin(nu)]).T.flatten()
+            p.applyExternalForce(self.AirShip,-1,thrust_vector_r.flatten(),self.config['rp_r'],p.LINK_FRAME,physicsClientId=self.physicsClient)
+            p.applyExternalForce(self.AirShip,-1,thrust_vector_l.flatten(),self.config['rp_l'],p.LINK_FRAME,physicsClientId=self.physicsClient)
             ### PROPULSION ###
 
             ### AERO DYNAMIC FORCES ###
-            aero = 0 * self.config['rho'] * np.array(self.config['Cd']) * self.A * np.abs(self.winlin) * self.winlin * np.array([-1,1,-1])
-            p.applyExternalForce(self.AirShip,-1,aero           ,(0,0,0),p.LINK_FRAME,physicsClientId=self.physicsClient)
+            V_wind_ERF = np.array([0.0, 0.0, 0.0])  # Wind speed in Earth coordinates
+            V_wind_BRF = Rz.T @ V_wind_ERF  # Convert wind speed to aircraft coordinate system
+            # Dynamic pressure
+            q_dyn = 0.5 * self.config['rho'] * np.linalg.norm(self.lin - V_wind_BRF) ** 2
+            # Calculating relative speed
+            u_rel, v_rel_body, w_rel = (self.lin - V_wind_BRF)[0], (self.lin - V_wind_BRF)[1], (self.lin - V_wind_BRF)[2]
+            # Angle of attack and sideslip angle
+            alpha = np.atan2(w_rel, u_rel)  # calculate relative wind speed magnitude (if not provided)
+            V_rel_mag = np.sqrt(u_rel ** 2 + v_rel_body ** 2 + w_rel ** 2)
+            beta = np.asin(v_rel_body / (V_rel_mag + 1e-6))  # calculate side slip angle
+            # Calculate aerodynamic forces and moments using the extracted functions
+            X_a = -q_dyn * (self.config['C_x1'] * np.cos(alpha) ** 2 * np.cos(beta) ** 2 + self.config['C_x2'] * np.sin(2 * alpha) * np.sin(alpha / 2))
+            Y_a = -q_dyn * (self.config['C_y1'] * np.cos(beta / 2) * np.sin(2 * beta) + self.config['C_y2'] * np.sin(2 * beta) + self.config['C_y3'] * np.sin(beta) * np.sin(np.fabs(beta)))
+            Z_a = -q_dyn * (self.config['C_z1'] * np.cos(alpha / 2) * np.sin(2 * alpha) + self.config['C_z2'] * np.sin(2 * alpha) + self.config['C_z3'] * np.sin(alpha) * np.sin(np.fabs(alpha)))
+            fa_BRF = np.vstack([X_a, Y_a, Z_a]).T.flatten()
+            p.applyExternalForce(self.AirShip, -1, fa_BRF, self.config['rg'], p.LINK_FRAME, physicsClientId=self.physicsClient)
             ### AERO DYNAMIC FORCES ###
             ##### PHYSICAL MODEL #####
             p.stepSimulation(physicsClientId=self.physicsClient)
@@ -224,10 +249,9 @@ class AirshipEnv(gym.Env):
         
         if self.render_mode:
             self.sleeper(self.config['f']*10)
-            p.resetDebugVisualizerCamera(40,0,0,self.pos,physicsClientId=self.physicsClient)
-            p.addUserDebugLine(self.config['ThrusterPos1'],self.config['ThrusterPos1']+np.array([thrust[1],0,0])*5,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line1,physicsClientId=self.physicsClient)
-            p.addUserDebugLine(self.config['ThrusterPos2'],self.config['ThrusterPos2']+np.array([thrust[2],0,0])*5,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line2,physicsClientId=self.physicsClient)
-            p.addUserDebugLine(self.config['ThrusterPos3'],self.config['ThrusterPos3']+np.array([thrust[3],0,0])*5,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line3,physicsClientId=self.physicsClient)
+            p.resetDebugVisualizerCamera(60,0,0,self.pos,physicsClientId=self.physicsClient)
+            p.addUserDebugLine(self.config['rp_r'],self.config['rp_r']+thrust_vector_r*10,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line1,physicsClientId=self.physicsClient)
+            p.addUserDebugLine(self.config['rp_l'],self.config['rp_l']+thrust_vector_l*10,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line2,physicsClientId=self.physicsClient)
             # p.addUserDebugLine((0,0,0)                    ,aero                                                   ,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.linet,physicsClientId=self.physicsClient)
             # p.addUserDebugLine((0,0,0)                    ,self.wind*5                                            ,lineColorRGB=(0,0,1),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.linew,physicsClientId=self.physicsClient)
             # p.addUserDebugLine((0,0,0)                    ,self.lin*1                                             ,lineColorRGB=(0,1,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.lined,physicsClientId=self.physicsClient)
@@ -269,6 +293,7 @@ if __name__ == '__main__':
     print('checked, no error!')
     # model = SAC.load('AirshipControl/airship_rl/training/model/SAC_airship_2025-04-02-11-12-18/model.zip',device='cpu',print_system_info=True)
     obs, info = env.reset()
+    # p.resetDebugVisualizerCamera(60,0,0,env.pos,physicsClientId=env.physicsClient)
     t = 0
     while True:
         # time.sleep(0.2)
