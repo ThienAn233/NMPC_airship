@@ -233,9 +233,9 @@ class AirshipEnv(gym.Env):
             # Calculating relative speed
             u_rel, v_rel_body, w_rel = (self.lin - V_wind_BRF)[0], (self.lin - V_wind_BRF)[1], (self.lin - V_wind_BRF)[2]
             # Angle of attack and sideslip angle
-            alpha = np.atan2(w_rel, u_rel)  # calculate relative wind speed magnitude (if not provided)
+            alpha = np.arctan2(w_rel, u_rel)  # calculate relative wind speed magnitude (if not provided)
             V_rel_mag = np.sqrt(u_rel ** 2 + v_rel_body ** 2 + w_rel ** 2)
-            beta = np.asin(v_rel_body / (V_rel_mag + 1e-6))  # calculate side slip angle
+            beta = np.arcsin(v_rel_body / (V_rel_mag + 1e-6))  # calculate side slip angle
             # Calculate aerodynamic forces and moments using the extracted functions
             X_a = -q_dyn * (self.config['C_x1'] * np.cos(alpha) ** 2 * np.cos(beta) ** 2 + self.config['C_x2'] * np.sin(2 * alpha) * np.sin(alpha / 2))
             Y_a = -q_dyn * (self.config['C_y1'] * np.cos(beta / 2) * np.sin(2 * beta) + self.config['C_y2'] * np.sin(2 * beta) + self.config['C_y3'] * np.sin(beta) * np.sin(np.fabs(beta)))
@@ -291,7 +291,7 @@ if __name__ == '__main__':
     # It will check your custom environment and output additional warnings if needed
     check_env(env)
     print('checked, no error!')
-    # model = SAC.load('AirshipControl/airship_rl/training/model/SAC_airship_2025-04-02-11-12-18/model.zip',device='cpu',print_system_info=True)
+    model = SAC.load('AirshipControl/airship_rl/training/model/SAC_airship_2025-04-02-11-12-18/model',device='cpu',print_system_info=True)
     obs, info = env.reset()
     # p.resetDebugVisualizerCamera(60,0,0,env.pos,physicsClientId=env.physicsClient)
     t = 0

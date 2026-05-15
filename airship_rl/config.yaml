@@ -19,11 +19,15 @@ ThrusterPos3:
 - 3.03
 - -1.75
 action_filter: 0.5
-airship_PATH: AirshipControl//airship_rl//airship_model//urdf//airship.urdf
+airship_PATH: NMPC_airship//airship_rl//airship_model//urdf//airship.urdf
 angvelrand:
 - -0.2
 - 0.2
 buoyancy_gain: 5000
+center_of_mass:
+- -0.576
+- 0
+- -0.366
 diameter: 8
 f: 0.004166666666666667
 g: -9.81
@@ -41,10 +45,9 @@ posrand:
 - -1
 - 1
 reward_coeff:
-- 10
-- 10
-- 0
-- 50
+- 1000
+- 1000
+- 1
 - 1
 rho: 0.089
 startOri:
@@ -55,10 +58,10 @@ startPos:
 - 0
 - 0
 - 100
-target_PATH: AirshipControl//airship_rl//airship_model//urdf//target.urdf
+target_PATH: NMPC_airship//airship_rl//airship_model//urdf//target.urdf
 target_range:
-- - 100
-  - 100
-- 200
+- - 80
+  - 120
+- 100
 thrust: 10000
 thrust_gain: 2000

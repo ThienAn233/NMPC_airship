@@ -203,8 +203,8 @@ class AirshipEnv(gym.Env):
 
         
         if self.render_mode:
-            self.sleeper(self.config['f']*10)
-            p.resetDebugVisualizerCamera(40,0,0,self.pos,physicsClientId=self.physicsClient)
+            # self.sleeper(self.config['f']*10)
+            # p.resetDebugVisualizerCamera(40,0,0,self.pos,physicsClientId=self.physicsClient)
             p.addUserDebugLine(self.config['ThrusterPos1'],self.config['ThrusterPos1']+np.array([thrust[1],0,0])*5,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line1,physicsClientId=self.physicsClient)
             p.addUserDebugLine(self.config['ThrusterPos2'],self.config['ThrusterPos2']+np.array([thrust[2],0,0])*5,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line2,physicsClientId=self.physicsClient)
             p.addUserDebugLine(self.config['ThrusterPos3'],self.config['ThrusterPos3']+np.array([thrust[3],0,0])*5,lineColorRGB=(1,0,0),parentObjectUniqueId=self.AirShip,parentLinkIndex=-1,replaceItemUniqueId=self.line3,physicsClientId=self.physicsClient)
@@ -247,7 +247,9 @@ if __name__ == '__main__':
     # It will check your custom environment and output additional warnings if needed
     check_env(env)
     print('checked, no error!')
-    model = SAC.load('AirshipControl/airship_rl/training/model/SAC_airship_2025-04-02-11-12-18/model.zip',device='cpu',print_system_info=True)
+    # model = SAC.load('NMPC_airship/airship_rl/training/model/SAC_airship_2025-02-25-08-55-29/model.zip',device='cpu',print_system_info=True)
+    model = SAC.load('NMPC_airship/airship_rl/training/model/SAC_airship_2025-02-19-13-55-13/model.zip',device='cpu',print_system_info=True)
+    p.resetDebugVisualizerCamera(40,0,0,env.pos,physicsClientId=env.physicsClient)
     obs, info = env.reset()
     t = 0
     while True:

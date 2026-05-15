@@ -3,8 +3,8 @@ import yaml
 # Data to be written to the YAML file
 data = {
     'plane_PATH'    : "plane.urdf",
-    'airship_PATH'  : "AirshipControl//airship_rl//airship_model//urdf//airship.urdf",
-    'target_PATH'   : "AirshipControl//airship_rl//airship_model//urdf//target.urdf",
+    'airship_PATH'  : "NMPC_airship//airship_rl//airship_model//urdf//airship.urdf",
+    'target_PATH'   : "NMPC_airship//airship_rl//airship_model//urdf//target.urdf",
     'g'             : -9.81,
     'f'             : 1./240.,
     'startPos'      : [0,0,100],
@@ -33,7 +33,7 @@ data = {
 }
 
 
-with open('AirshipControl//airship_rl//config.yaml', 'w') as file:
+with open('NMPC_airship//airship_rl//config.yaml', 'w') as file:
     yaml.dump(data, file)
 
 print("Data has been written to 'data.yaml'")
